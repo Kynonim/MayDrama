@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:maydrama/ui/core.dart';
@@ -5,7 +6,17 @@ import 'package:maydrama/utils/server.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  HttpOverrides.global = HttpBypass();
   runApp(const App());
+}
+
+// bypass ssl cert
+class HttpBypass extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context) // not safe
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  }
 }
 
 class App extends StatelessWidget {
