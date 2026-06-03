@@ -391,7 +391,7 @@ class MayDescriptionState extends State<MayDescription> {
                                           children: [
                                             Text(
                                               "Episode ${index + 1}",
-                                              style: const TextStyle(fontSize: 13, fontWeight: .bold),
+                                              style: const TextStyle(fontSize: 13, fontWeight: .bold, color: Colors.white),
                                             ),
                                             Icon(Icons.check_circle_outline, size: 14, color: Colors.grey.withValues(alpha: 0.6)),
                                           ],

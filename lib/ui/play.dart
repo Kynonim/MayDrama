@@ -84,9 +84,75 @@ class MayDramaPlayState extends State<MayDramaPlay> {
                   onPressed: () => Navigator.pop(context),
                 ),
                 Text(
-                  "${widget.title} - Eps ${currentIndex + 1}"
+                  "${widget.title} - Eps ${currentIndex + 1}",
+                  style: TextStyle(color: Colors.white, fontWeight: .w400),
                 )
               ],
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            right: 8,
+            child: IconButton(
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: .vertical(top: .circular(20)),
+                  ),
+                  builder: (context) {
+                    return Container(
+                      padding: const .all(20),
+                      height: 200,
+                      child: Column(
+                        mainAxisAlignment: .center,
+                        children: [
+                          Text(
+                            "${widget.title} - Episode ke ${currentIndex + 1} / ${widget.totalEpsIndex}",
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.secondary,
+                              fontWeight: .bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 45,
+                            child: ListView.builder(
+                              scrollDirection: .horizontal,
+                              padding: const .symmetric(horizontal: 16),
+                              itemCount: widget.totalEpsIndex,
+                              itemBuilder: (context, index) {
+                                final isSelected = index == currentIndex;
+                                return GestureDetector(
+                                  onTap: () => jumpToEpisode(index),
+                                  child: Container(
+                                    margin: const .symmetric(horizontal: 6),
+                                    padding: const .symmetric(horizontal: 18),
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+                                      borderRadius: .circular(15),
+                                    ),
+                                    alignment: .center,
+                                    child: Text(
+                                      "${index + 1}",
+                                      style: TextStyle(
+                                        color: isSelected ? Colors.white : Theme.of(context).colorScheme.primary,
+                                        fontWeight: isSelected ? .bold : .normal
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+              icon: Icon(Icons.more_horiz, color: Colors.white),
             ),
           ),
         ],
