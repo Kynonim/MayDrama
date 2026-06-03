@@ -354,53 +354,50 @@ class MayDescriptionState extends State<MayDescription> {
                                   borderRadius: .circular(8),
                                   border: .all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
                                 ),
-                                child:
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: const .vertical(top: .circular(8)),
-                                    child: Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: CachedNetworkImage(
-                                            imageUrl: eps[index]["episodeCover"] ?? data["shortPlayCover"],
-                                            fit: .cover,
-                                            placeholder: (context, url) => const Center(
-                                              child: SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child: CircularProgressIndicator(strokeWidth: 2),
-                                              ),
-                                            ),
-                                            errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 20),
-                                          ),
-                                        ),
-                                        Positioned.fill(
-                                          child: Container(
-                                            color: Colors.black.withValues(alpha: 0.2),
-                                            child: const Icon(
-                                              Icons.play_circle,
-                                              color: Colors.white,
-                                              size: 32,
+                                child: ClipRRect(
+                                  borderRadius: const .vertical(top: .circular(8)),
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: CachedNetworkImage(
+                                          imageUrl: eps[index]["episodeCover"] ?? data["shortPlayCover"],
+                                          fit: .cover,
+                                          placeholder: (context, url) => const Center(
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(strokeWidth: 2),
                                             ),
                                           ),
+                                          errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 20),
                                         ),
-                                        Positioned(
-                                          bottom: 8,
-                                          left: 8,
-                                          right: 8,
-                                          child: Row(
-                                            mainAxisAlignment: .spaceBetween,
-                                            children: [
-                                              Text(
-                                                "Episode ${index + 1}",
-                                                style: const TextStyle(fontSize: 13, fontWeight: .bold),
-                                              ),
-                                              Icon(Icons.check_circle_outline, size: 14, color: Colors.grey.withValues(alpha: 0.6)),
-                                            ],
+                                      ),
+                                      Positioned.fill(
+                                        child: Container(
+                                          color: Colors.black.withValues(alpha: 0.2),
+                                          child: const Icon(
+                                            Icons.play_circle,
+                                            color: Colors.white,
+                                            size: 32,
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                      Positioned(
+                                        bottom: 8,
+                                        left: 8,
+                                        right: 8,
+                                        child: Row(
+                                          mainAxisAlignment: .spaceBetween,
+                                          children: [
+                                            Text(
+                                              "Episode ${index + 1}",
+                                              style: const TextStyle(fontSize: 13, fontWeight: .bold),
+                                            ),
+                                            Icon(Icons.check_circle_outline, size: 14, color: Colors.grey.withValues(alpha: 0.6)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),

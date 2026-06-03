@@ -1,5 +1,5 @@
 name: maydrama
-description: "A new Flutter project."
+description: "Micro drama placeholder"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -28,7 +28,6 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
-  cached_network_image: ^3.4.1
   flutter:
     sdk: flutter
 
@@ -36,6 +35,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   http: ^1.6.0
   shared_preferences: ^2.5.5
+  cached_network_image: ^3.4.1
+  video_player: ^2.11.1
+  flutter_cache_manager: ^3.4.1
 
 dev_dependencies:
   flutter_test:

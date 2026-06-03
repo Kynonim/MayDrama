@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:maydrama/utils/server.dart';
+import 'package:video_player/video_player.dart';
 
 class MayDramaPlay extends StatefulWidget {
   final String id, title;
@@ -19,11 +22,10 @@ class MayDramaPlay extends StatefulWidget {
 }
 
 class MayDramaPlayState extends State<MayDramaPlay> {
-  final PageController pageController = PageController();
+  late PageController pageController;
   int currentIndex = 0;
 
   void jumpToEpisode(int index) {
-    setState(() => currentIndex = index);
     pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
@@ -48,6 +50,7 @@ class MayDramaPlayState extends State<MayDramaPlay> {
   void initState() {
     super.initState();
     currentIndex = widget.currentEpsIndex;
+    pageController = PageController(initialPage: widget.currentEpsIndex);
   }
 
   @override
@@ -62,56 +65,27 @@ class MayDramaPlayState extends State<MayDramaPlay> {
             itemCount: widget.totalEpsIndex,
             onPageChanged: (idx) => setState(() => currentIndex = idx),
             itemBuilder: (context, index) {
-              return VideoPlayer(
-                episodeId: widget.id,
+              return MayVideoPlayer(
+                id: widget.id,
                 index: widget.index,
-                episodeIndex: index,
+                currentIndex: index,
+                isActive: index == currentIndex,
                 onVideoEnded: onVideoFinished,
               );
             },
           ),
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: 30,
-            child: Column(
-              mainAxisSize: .min,
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 8,
+            child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
                 Text(
-                  "Episode ke-${currentIndex + 1}",
-                  style: const TextStyle(color: Colors.white, fontWeight: .bold),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 50,
-                  child: ListView.builder(
-                    scrollDirection: .horizontal,
-                    padding: const .symmetric(horizontal: 16),
-                    itemCount: widget.totalEpsIndex,
-                    itemBuilder: (ctx, idx) {
-                      final isSelected = idx == currentIndex;
-                      return GestureDetector(
-                        onTap: () => jumpToEpisode(idx),
-                        child: Container(
-                          margin: const .symmetric(horizontal: 6),
-                          padding: const .symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: isSelected ? Colors.red : Colors.white24,
-                            borderRadius: .circular(25)
-                          ),
-                          alignment: .center,
-                          child: Text(
-                            "Eps ${idx + 1}",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: isSelected ? .bold : .normal,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                  "${widget.title} - Eps ${currentIndex + 1}"
+                )
               ],
             ),
           ),
@@ -127,64 +101,103 @@ class MayDramaPlayState extends State<MayDramaPlay> {
   }
 }
 
-class VideoPlayer extends StatefulWidget {
-  final String episodeId;
-  final int index, episodeIndex;
+class MayVideoPlayer extends StatefulWidget {
+  final String id;
+  final int index, currentIndex;
   final VoidCallback onVideoEnded;
+  final bool isActive;
 
-  const VideoPlayer({
+  const MayVideoPlayer({
     super.key,
-    required this.episodeId,
-    required this.episodeIndex,
+    required this.id,
+    required this.currentIndex,
     required this.index,
+    required this.isActive,
     required this.onVideoEnded
   });
 
   @override
-  State<VideoPlayer> createState() => VideoPlayerState();
+  State<MayVideoPlayer> createState() => MayVideoPlayerState();
 }
 
-class VideoPlayerState extends State<VideoPlayer> {
+class MayVideoPlayerState extends State<MayVideoPlayer> {
   final ApiService apiService = ApiService();
   final ServerManager serverManager = ServerManager();
-  Future<Map<String, dynamic>>? episodeVideoData;
 
-  String token = "null";
+  VideoPlayerController? videoPlayerController;
+  Future<void>? futureInitializeVideo;
 
   @override
   void initState() {
     super.initState();
-    episodeVideoData = initializeData();
+    futureInitializeVideo = initializeVideo();
   }
 
-  Future<Map<String, dynamic>> initializeData() async {
-    token = await serverManager.getAccessToken();
-    if (token == "null" || token.isEmpty) {
-      throw Exception("Access Key belum diisi atau tidak valid");
-    }
-    return apiService.fetchData(serverManager.servers[widget.index].getVideo(
-      id: widget.episodeId,
-      eps: widget.episodeIndex,
+  Future<void> initializeVideo() async {
+    String token = await serverManager.getAccessToken();
+    var res = await apiService.fetchData(serverManager.servers[widget.index].getVideo(
+      id: widget.id,
+      eps: widget.currentIndex,
       token: token
     ));
+    final videoUrl = res["data"]["videoUrl"].toString();
+    final fileInfo = await DefaultCacheManager().getSingleFile(videoUrl);
+    videoPlayerController = VideoPlayerController.file(fileInfo);
+
+    await videoPlayerController!.initialize();
+    videoPlayerController!.setLooping(false);
+    if (widget.isActive && mounted) {
+      videoPlayerController!.play();
+    }
+    videoPlayerController!.addListener(() {
+      if (videoPlayerController!.value.position >= videoPlayerController!.value.duration && videoPlayerController!.value.duration != Duration.zero && widget.isActive && mounted) {
+        widget.onVideoEnded();
+      }
+    });
+    setState(() {});
+  }
+
+  @override
+  void didUpdateWidget(covariant MayVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (videoPlayerController != null && videoPlayerController!.value.isInitialized) {
+      if (widget.isActive && !oldWidget.isActive) {
+        videoPlayerController!.play();
+      } else if (!widget.isActive && oldWidget.isActive) {
+        videoPlayerController!.pause();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: episodeVideoData,
+    return FutureBuilder<void>(
+      future: futureInitializeVideo,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting || videoPlayerController == null || !videoPlayerController!.value.isInitialized) {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           final errMessage = snapshot.error.toString().replaceAll("Exception", "");
-          return Center(child: Text("Error: $errMessage"));
-        } else if (snapshot.hasData) {
-          final data = snapshot.data!;
-          return Text("$data");
+          return Center(child: Text("Error: $errMessage", style: TextStyle(color: Colors.white)));
         }
-        return const Center(child: Text("Tidak ada data"));
+        return GestureDetector(
+          onTap: () => videoPlayerController!.value.isPlaying ? videoPlayerController!.pause() : videoPlayerController!.play(),
+          child: Container(
+            color: Colors.black,
+            alignment: .center,
+            child: AspectRatio(
+              aspectRatio: videoPlayerController!.value.aspectRatio,
+              child: VideoPlayer(videoPlayerController!),
+            ),
+          ),
+        );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    videoPlayerController?.dispose();
+    super.dispose();
   }
 }
