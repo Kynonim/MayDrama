@@ -223,7 +223,7 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
     String token = await serverManager.getAccessToken();
     var res = await apiService.fetchData(serverManager.servers[widget.index].getVideo(
       id: widget.id,
-      eps: widget.currentIndex,
+      eps: widget.currentIndex + 1,
       token: token
     ));
     final videoUrl = res["data"]["videoUrl"].toString();
@@ -474,7 +474,7 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
                 ),
                 Positioned(
                   right: 16,
-                  bottom: 16,
+                  bottom: 32,
                   child: IgnorePointer(
                     ignoring: !isShowControls,
                     child: AnimatedOpacity(
@@ -512,6 +512,52 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
                         videoPlayerController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
                         color: Colors.white,
                         size: 40,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
+                  child: IgnorePointer(
+                    ignoring: !isShowControls,
+                    child: AnimatedOpacity(
+                      opacity: isShowControls ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 250),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: .start,
+                            children: [
+                              Text(
+                                MaySubtitleVideo.formatDuration(videoPlayerController!.value.position),
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                              Text(" / ", style: const TextStyle(fontWeight: .bold)),
+                              Text(
+                                MaySubtitleVideo.formatDuration(videoPlayerController!.value.duration),
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                              )
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            behavior: .opaque,
+                            onHorizontalDragStart: (details) => controlTimer?.cancel(),
+                            onHorizontalDragEnd: (details) => resetControlsTimer(),
+                            child: VideoProgressIndicator(
+                              videoPlayerController!,
+                              allowScrubbing: true,
+                              padding: const .symmetric(vertical: 8),
+                              colors: VideoProgressColors(
+                                playedColor: Theme.of(context).colorScheme.primary,
+                                bufferedColor: Colors.white24,
+                                backgroundColor: Colors.white12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -599,5 +645,15 @@ class MaySubtitleVideo {
       if (secParts.length > 1) miliseconds = int.parse(secParts[1].padRight(3, "0").substring(0, 3));
     }
     return Duration(hours: hours, minutes: minutes, seconds: seconds, milliseconds: miliseconds);
+  }
+
+  static String formatDuration(Duration duration) {
+    String digits(int n) => n.toString().padLeft(2, "0");
+    String digitMinutes = digits(duration.inMinutes.remainder(60));
+    String digitSeconds = digits(duration.inSeconds.remainder(60));
+    if (duration.inHours > 0) {
+      return "${digits(duration.inHours)}:$digitMinutes:$digitSeconds";
+    }
+    return "$digitMinutes:$digitSeconds";
   }
 }
