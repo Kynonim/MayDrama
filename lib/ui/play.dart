@@ -24,6 +24,7 @@ class MayDramaPlay extends StatefulWidget {
 class MayDramaPlayState extends State<MayDramaPlay> {
   late PageController pageController;
   int currentIndex = 0;
+  bool isPlayerControlsVisible = true;
 
   void jumpToEpisode(int index) {
     pageController.animateToPage(
@@ -71,23 +72,31 @@ class MayDramaPlayState extends State<MayDramaPlay> {
                 currentIndex: index,
                 isActive: index == currentIndex,
                 onVideoEnded: onVideoFinished,
+                onControlsChnaged: (isVisible) => setState(() => isPlayerControlsVisible = isVisible),
               );
             },
           ),
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
             left: 8,
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+            child: IgnorePointer(
+              ignoring: !isPlayerControlsVisible,
+              child: AnimatedOpacity(
+                opacity: isPlayerControlsVisible ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 250),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Text(
+                      "${widget.title} - Eps ${currentIndex + 1}",
+                      style: TextStyle(color: Colors.white, fontWeight: .w400),
+                    )
+                  ],
                 ),
-                Text(
-                  "${widget.title} - Eps ${currentIndex + 1}",
-                  style: TextStyle(color: Colors.white, fontWeight: .w400),
-                )
-              ],
+              ),
             ),
           ),
           Positioned(
@@ -103,7 +112,7 @@ class MayDramaPlayState extends State<MayDramaPlay> {
                   builder: (context) {
                     return Container(
                       padding: const .all(20),
-                      height: 200,
+                      height: 150,
                       child: Column(
                         mainAxisAlignment: .center,
                         children: [
@@ -171,6 +180,7 @@ class MayVideoPlayer extends StatefulWidget {
   final String id;
   final int index, currentIndex;
   final VoidCallback onVideoEnded;
+  final Function(bool) onControlsChnaged;
   final bool isActive;
 
   const MayVideoPlayer({
@@ -179,7 +189,8 @@ class MayVideoPlayer extends StatefulWidget {
     required this.currentIndex,
     required this.index,
     required this.isActive,
-    required this.onVideoEnded
+    required this.onVideoEnded,
+    required this.onControlsChnaged,
   });
 
   @override
@@ -268,7 +279,10 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
         }
       }
     });
-    if (widget.isActive && mounted) resetControlsTimer();
+    if (widget.isActive && mounted) {
+      resetControlsTimer();
+      widget.onControlsChnaged(true);
+    }
     setState(() {});
   }
 
@@ -316,10 +330,10 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
               ListTile(
                 leading: Icon(
                   Icons.subtitles_off,
-                  color: selectedLang == "Off" ? Colors.redAccent : Theme.of(context).colorScheme.secondary
+                  color: selectedLang == "Off" ? Theme.of(context).colorScheme.tertiary : Theme.of(context).colorScheme.secondary
                 ),
                 title: Text("Matikan Subtitle (Off)", style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
-                trailing: selectedLang == "Off" ? const Icon(Icons.check, color: Colors.redAccent) : null,
+                trailing: selectedLang == "Off" ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.tertiary) : null,
                 onTap: () => changeSubtitleLanguage("Off"),
               ),
               ...allSubtitle.keys.map((key) {
@@ -328,9 +342,9 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
                 if (key == "id_ID") readableLang = "Bahasa Indonesia";
                 if (key == "en_US") readableLang = "English";
                 return ListTile(
-                  leading: Icon(Icons.subtitles, color: isSelected ? Colors.redAccent : Theme.of(context).colorScheme.secondary),
-                  title: Text(readableLang, style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
-                  trailing: isSelected ? const Icon(Icons.check, color: Colors.redAccent) : null,
+                  leading: Icon(Icons.subtitles, color: isSelected ? Theme.of(context).colorScheme.tertiary : Theme.of(context).colorScheme.secondary),
+                  title: Text(readableLang, style: TextStyle(color: isSelected ? Theme.of(context).colorScheme.tertiary : Theme.of(context).colorScheme.primary)),
+                  trailing: isSelected ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.tertiary) : null,
                   onTap: () => changeSubtitleLanguage(key),
                 );
               }),
@@ -345,6 +359,7 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
     setState(() {
       isShowControls = !isShowControls;
     });
+    widget.onControlsChnaged(isShowControls);
     if (isShowControls) resetControlsTimer();
   }
 
@@ -353,6 +368,7 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
     controlTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() => isShowControls = false);
+        widget.onControlsChnaged(false);
       }
     });
   }
@@ -402,6 +418,7 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
                 isShowControls = true;
                 resetControlsTimer();
               });
+              widget.onControlsChnaged(true);
             }
           },
           child: Container(

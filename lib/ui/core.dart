@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:maydrama/ui/play.dart';
+import 'package:maydrama/ui/search.dart';
 import 'package:maydrama/utils/server.dart';
 
 class MayDrama extends StatefulWidget {
@@ -34,7 +35,7 @@ class MayDramaState extends State<MayDrama> {
         actions: [
           IconButton(
             onPressed: () {
-              //search
+              Navigator.push(context, MaterialPageRoute(builder: (ctx) => MaySearchDrama(index: widget.index)));
             },
             icon: Icon(Icons.search),
           )
@@ -415,6 +416,134 @@ class MayDescriptionState extends State<MayDescription> {
           return const Center(child: Text("Tidak ada data"));
         },
       ),
+    );
+  }
+}
+
+class MayDramaWidget {
+  static Widget mayDramaList(BuildContext context, Future<Map<String, dynamic>>? futureData, int appIndex) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: futureData,
+      builder: (ctx, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snap.hasError) {
+          return Center(child: Text(snap.error.toString()));
+        } else if (snap.hasData) {
+          var data = snap.data!;
+          List<dynamic> drama = data["data"]["dataList"] ?? data["data"]["searchCodeSearchResult"] ?? data["data"]["contentInfos"];
+          if (drama.isEmpty) {
+            return const Center(child: Text("Tidak ada drama yang tersedia !"));
+          }
+          return GridView.builder(
+            padding: const .all(12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, // jumlah kolom
+              crossAxisSpacing: 12, // jarak horizontal
+              mainAxisSpacing: 12, // jarak vertical
+              childAspectRatio: 0.64 // rasio w.h
+            ),
+            itemCount: drama.length,
+            itemBuilder: (context, index) {
+              final title = drama[index]["shortPlayName"].toString().replaceAll("<em>", "").replaceAll("</em>", "");
+              final thumbnail = drama[index]["shortPlayCover"].toString();
+              final likeCount = drama[index]["heatScore"] ?? drama[index]["scoreShow"] ?? drama[index]["heatScoreShow"];
+              final type = (drama[index]["labelNameList"] != null ? drama[index]["labelNameList"][0] : drama[index]["scriptName"] ?? "New").toString().replaceAll("<em>", "").replaceAll("</em>", "");
+              final id = drama[index]["shortPlayId"].toString();
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (ctx) => MayDescription(id: id, index: appIndex)));
+                },
+                child: ClipRRect(
+                  borderRadius: .circular(8),
+                  child: Container(
+                    color: Theme.of(context).cardColor,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: CachedNetworkImage(
+                            imageUrl: thumbnail,
+                            fit: .cover,
+                            placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) => const Icon(Icons.broken_image, color: Colors.grey),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.6),
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.85)
+                                ],
+                                begin: .topCenter,
+                                end: .bottomCenter,
+                                stops: const [0.0, 0.4, 1.0] //titik gradient
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: .symmetric(horizontal: 6, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: .circular(12)
+                            ),
+                            child: Row(
+                              mainAxisSize: .min,
+                              children: [
+                                const Icon(Icons.favorite, color: Colors.redAccent, size: 14),
+                                const SizedBox(width: 4),
+                                Text(likeCount, style: TextStyle(fontSize: 11, fontWeight: .bold, color: Colors.white))
+                              ],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            padding: .symmetric(horizontal: 6, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: .circular(12)
+                            ),
+                            child: Text(type, style: TextStyle(fontSize: 11, fontWeight: .bold, color: Colors.yellowAccent)),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          left: 8,
+                          right: 8,
+                          child: Text(
+                            title,
+                            maxLines: 2,
+                            overflow: .ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: .bold,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(offset: Offset(0.5, 0.5), blurRadius: 2.0, color: Colors.black)
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }
+        return const Center(child: Text("Tidak ada data"));
+      },
     );
   }
 }

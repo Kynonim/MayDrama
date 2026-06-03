@@ -13,6 +13,7 @@ class ServerConfig {
   final String Function({String lang})? getCategories;
   final String Function({required String id, String lang}) getDescription;
   final String Function({required String id, required int eps, String lang, required String token}) getVideo;
+  final String Function({int page, String lang}) getPopular;
 
   ServerConfig({
     required this.id,
@@ -21,6 +22,7 @@ class ServerConfig {
     required this.getSearch,
     required this.getDescription,
     required this.getVideo,
+    required this.getPopular,
     this.getCategories,
     this.isActive = true,
   });
@@ -42,6 +44,7 @@ class ServerManager {
       getCategories: ({lang = "in"}) => "$apiNetshort/api/categories?lang=$lang",
       getDescription: ({required id, lang = "in"}) => "$apiNetshort/api/drama/$id?lang=$lang",
       getVideo: ({required eps, required id, lang = "in", required token}) => "$apiNetshort/api/watch/$id/$eps?lang=$lang&code=$token",
+      getPopular: ({lang = "in", page = 1}) => "$apiNetshort/api/list/$page?lang=$lang",
     ),
   ];
 
