@@ -73,4 +73,18 @@ class ApiService {
       throw Exception("Terjadi kesalahan: $e");
     }
   }
+
+  Future<dynamic> fetchDynamicData(String url) async {
+    final uri = Uri.parse(url);
+    try {
+      final res = await http.get(uri);
+      if (res.statusCode == 200) {
+        return res.body;
+      } else {
+        throw Exception("Error status code: ${res.statusCode}");
+      }
+    } catch (e) {
+      throw Exception(e);
+    }
+  }
 }

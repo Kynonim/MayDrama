@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:maydrama/utils/server.dart';
@@ -193,6 +192,11 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
   VideoPlayerController? videoPlayerController;
   Future<void>? futureInitializeVideo;
 
+  List<MaySubtitleItem> subtitleList = [];
+  String currentSubtitleText = "";
+  Map<String, String> allSubtitle = {};
+  String selectedLang = "Off";
+
   @override
   void initState() {
     super.initState();
@@ -207,6 +211,29 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
       token: token
     ));
     final videoUrl = res["data"]["videoUrl"].toString();
+
+    if (res["data"]["subtitles"] != null) {
+      final List<dynamic> subList = res["data"]["subtitles"];
+      Map<String, String> tempSubs = {};
+
+      for (var sub in subList) {
+        tempSubs[sub["lang"].toString()] = sub["url"].toString();
+      }
+
+      setState(() {
+        allSubtitle = tempSubs;
+        if (allSubtitle.containsKey("id_ID")) {
+          selectedLang = "id_ID";
+        } else if (allSubtitle.isNotEmpty) {
+          selectedLang = allSubtitle.keys.first;
+        }
+      });
+    }
+
+    if (selectedLang != "Off") {
+      await fetchAndParseSubtitle(allSubtitle[selectedLang]!);
+    }
+
     final fileInfo = await DefaultCacheManager().getSingleFile(videoUrl);
     videoPlayerController = VideoPlayerController.file(fileInfo);
 
@@ -216,11 +243,96 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
       videoPlayerController!.play();
     }
     videoPlayerController!.addListener(() {
-      if (videoPlayerController!.value.position >= videoPlayerController!.value.duration && videoPlayerController!.value.duration != Duration.zero && widget.isActive && mounted) {
+      if (!mounted) return;
+      if (videoPlayerController!.value.position >= videoPlayerController!.value.duration && videoPlayerController!.value.duration != Duration.zero && widget.isActive) {
         widget.onVideoEnded();
+        return;
+      }
+      if (selectedLang != "Off" && subtitleList.isNotEmpty) {
+        final currentPosition = videoPlayerController!.value.position;
+        final matchingSub = subtitleList.firstWhere(
+          (sub) => currentPosition >= sub.start && currentPosition <= sub.end,
+          orElse: () => MaySubtitleItem(start: Duration.zero, end: Duration.zero, text: ""),
+        );
+        if (currentSubtitleText != matchingSub.text) {
+          setState(() => currentSubtitleText = matchingSub.text);
+        }
+      } else {
+        if (currentSubtitleText.isNotEmpty) {
+          setState(() => currentSubtitleText = "");
+        }
       }
     });
     setState(() {});
+  }
+
+  Future<void> fetchAndParseSubtitle(String url) async {
+    try {
+      final data = await apiService.fetchDynamicData(url);
+      subtitleList = MaySubtitleVideo.parseSubtitleText(data);
+    } catch (e) {
+      debugPrint("Failed download subtitle: $e");
+      subtitleList = [];
+    }
+  }
+
+  void changeSubtitleLanguage(String key) async {
+    Navigator.pop(context);
+    setState(() {
+      selectedLang = key;
+      currentSubtitleText = "";
+      subtitleList = [];
+    });
+    if (key != "Off") {
+      await fetchAndParseSubtitle(allSubtitle[key]!);
+    }
+  }
+
+  void showSubtitleSelection() {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: .vertical(top: .circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: .min,
+            children: [
+              Padding(
+                padding: const .all(16),
+                child: Text(
+                  "Pilih Subtitle",
+                  style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 16, fontWeight: .bold),
+                ),
+              ),
+              //Divider(color: Theme.of(context).colorScheme.secondary, height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.subtitles_off,
+                  color: selectedLang == "Off" ? Colors.redAccent : Theme.of(context).colorScheme.secondary
+                ),
+                title: Text("Matikan Subtitle (Off)", style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
+                trailing: selectedLang == "Off" ? const Icon(Icons.check, color: Colors.redAccent) : null,
+                onTap: () => changeSubtitleLanguage("Off"),
+              ),
+              ...allSubtitle.keys.map((key) {
+                final isSelected = selectedLang == key;
+                String readableLang = key;
+                if (key == "id_ID") readableLang = "Bahasa Indonesia";
+                if (key == "en_US") readableLang = "English";
+                return ListTile(
+                  leading: Icon(Icons.subtitles, color: isSelected ? Colors.redAccent : Theme.of(context).colorScheme.secondary),
+                  title: Text(readableLang, style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
+                  trailing: isSelected ? const Icon(Icons.check, color: Colors.redAccent) : null,
+                  onTap: () => changeSubtitleLanguage(key),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -250,10 +362,51 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
           onTap: () => videoPlayerController!.value.isPlaying ? videoPlayerController!.pause() : videoPlayerController!.play(),
           child: Container(
             color: Colors.black,
-            alignment: .center,
-            child: AspectRatio(
-              aspectRatio: videoPlayerController!.value.aspectRatio,
-              child: VideoPlayer(videoPlayerController!),
+            child: Stack(
+              alignment: .center,
+              children: [
+                Center(
+                  child: AspectRatio(
+                    aspectRatio: videoPlayerController!.value.aspectRatio,
+                    child: VideoPlayer(videoPlayerController!),
+                  ),
+                ),
+                if (selectedLang != "Off" && currentSubtitleText.isNotEmpty) Positioned(
+                  bottom: 120,
+                  left: 24,
+                  right: 24,
+                  child: Text(
+                    currentSubtitleText,
+                    textAlign: .center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: .bold,
+                      shadows: [Shadow(offset: Offset(1, 1), blurRadius: 4, color: Colors.black)],
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.black26,
+                        //radius: 22,
+                        child: IconButton(
+                          onPressed: () => showSubtitleSelection(),
+                          icon: Icon(
+                            selectedLang == "Off" ? Icons.closed_caption_disabled : Icons.closed_caption,
+                            color: selectedLang == "Off" ? Colors.white54 : Colors.yellowAccent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -265,5 +418,75 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
   void dispose() {
     videoPlayerController?.dispose();
     super.dispose();
+  }
+}
+
+class MaySubtitleItem {
+  final Duration start;
+  final Duration end;
+  final String text;
+
+  MaySubtitleItem({required this.start, required this.end, required this.text});
+}
+
+class MaySubtitleVideo {
+  static List<MaySubtitleItem> parseSubtitleText(String text) {
+    final List<MaySubtitleItem> list = [];
+    final blocks = text.replaceAll("\r", "").split(RegExp(r'\n\s*\n'));
+
+    for (var block in blocks) {
+      final lines = block.split("\n").where((ls) => ls.trim().isNotEmpty).toList();
+      if (lines.isEmpty) continue;
+      if (lines.first.trim().startsWith("WEBVTT")) continue;
+
+      String timeLine = "";
+      String textLine = "";
+
+      //times
+      for (var line in lines) {
+        if (line.contains("-->")) {
+          timeLine = line;
+          final currentIndex = lines.indexOf(line);
+          textLine = lines.sublist(currentIndex + 1).join("\n");
+          break;
+        }
+      }
+
+      if (timeLine.isNotEmpty && textLine.isNotEmpty) {
+        final times = timeLine.split("-->");
+        if (times.length == 2) {
+          try {
+            final start = parseDuration(times[0].trim());
+            final end = parseDuration(times[1].trim());
+            list.add(MaySubtitleItem(start: start, end: end, text: textLine.trim()));
+          } catch (e) {
+            debugPrint("Failed parsing: $timeLine, error: $e");
+          }
+        }
+      }
+    }
+    return list;
+  }
+
+  static Duration parseDuration(String input) {
+    final parts = input.split(":");
+    int hours = 0, minutes = 0, seconds = 0, miliseconds = 0;
+    if (parts.length == 3) {
+      //format default hh:mm:ss.mmm
+      hours = int.parse(parts[0]);
+      minutes = int.parse(parts[1]);
+
+      final secParts = parts[2].split(".");
+      seconds = int.parse(secParts[0]);
+      if (secParts.length > 1) miliseconds = int.parse(secParts[1].padRight(3, "0").substring(0, 3));
+    } else if (parts.length == 2) {
+      //format optional mm:ss.mmm
+      minutes= int.parse(parts[0]);
+
+      final secParts = parts[1].split(".");
+      seconds = int.parse(secParts[0]);
+      if (secParts.length > 1) miliseconds = int.parse(secParts[1].padRight(3, "0").substring(0, 3));
+    }
+    return Duration(hours: hours, minutes: minutes, seconds: seconds, milliseconds: miliseconds);
   }
 }
