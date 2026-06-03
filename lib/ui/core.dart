@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:maydrama/ui/play.dart';
 import 'package:maydrama/utils/server.dart';
 
 class MayDrama extends StatefulWidget {
@@ -200,6 +201,7 @@ class MayDescriptionState extends State<MayDescription> {
             return Center(child: Text(snapshot.error.toString()));
           } else if (snapshot.hasData) {
             final data = snapshot.data!["data"];
+            final id = data["shortPlayId"].toString();
             final title = data["shortPlayName"].toString();
             final thumbnail = data["shortPlayCover"].toString();
             final List<dynamic> label = data["shortPlayLabels"];
@@ -232,8 +234,8 @@ class MayDescriptionState extends State<MayDescription> {
                                 Colors.transparent,
                                 bgColor.withValues(alpha: 0.5),
                                 bgColor
-                              ]
-                            )
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -286,7 +288,13 @@ class MayDescriptionState extends State<MayDescription> {
                         FilledButton.icon(
                           label: Text("Play", style: const TextStyle(fontSize: 18, fontWeight: .bold)),
                           onPressed: () {
-                            //play eps 1
+                            Navigator.push(context, MaterialPageRoute(builder: (ctx) => MayDramaPlay(
+                              id: id,
+                              title: title,
+                              index: widget.index,
+                              currentEpsIndex: 0,
+                              totalEpsIndex: eps.length,
+                            )));
                           },
                           icon: Icon(Icons.play_circle),
                         ),
@@ -317,7 +325,7 @@ class MayDescriptionState extends State<MayDescription> {
                             ),
                           ],
                         ),
-                        //const SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -331,7 +339,13 @@ class MayDescriptionState extends State<MayDescription> {
                           itemBuilder: (context, index) {
                             return InkWell(
                               onTap: () {
-                                // play
+                                Navigator.push(context, MaterialPageRoute(builder: (ctx) => MayDramaPlay(
+                                  id: id,
+                                  title: title,
+                                  index: widget.index,
+                                  currentEpsIndex: index,
+                                  totalEpsIndex: eps.length,
+                                )));
                               },
                               borderRadius: .circular(8),
                               child: Container(

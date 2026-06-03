@@ -30,7 +30,7 @@ class ServerManager {
 
   Future<String> getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString("access_key") ?? "";
+    return prefs.getString("access_key") ?? "null";
   }
 
   List<ServerConfig> servers = [
