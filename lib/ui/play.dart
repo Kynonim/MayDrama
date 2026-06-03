@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:maydrama/utils/server.dart';
@@ -197,6 +198,10 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
   Map<String, String> allSubtitle = {};
   String selectedLang = "Off";
 
+  Timer? controlTimer;
+  bool isShowControls = true;
+  bool isFastForwarding = false;
+
   @override
   void initState() {
     super.initState();
@@ -263,6 +268,7 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
         }
       }
     });
+    if (widget.isActive && mounted) resetControlsTimer();
     setState(() {});
   }
 
@@ -335,6 +341,22 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
     );
   }
 
+  void toggleControls() {
+    setState(() {
+      isShowControls = !isShowControls;
+    });
+    if (isShowControls) resetControlsTimer();
+  }
+
+  void resetControlsTimer() {
+    controlTimer?.cancel();
+    controlTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => isShowControls = false);
+      }
+    });
+  }
+
   @override
   void didUpdateWidget(covariant MayVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -359,7 +381,29 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
           return Center(child: Text("Error: $errMessage", style: TextStyle(color: Colors.white)));
         }
         return GestureDetector(
-          onTap: () => videoPlayerController!.value.isPlaying ? videoPlayerController!.pause() : videoPlayerController!.play(),
+          onTap: () {
+            toggleControls();
+            videoPlayerController!.value.isPlaying ? videoPlayerController!.pause() : videoPlayerController!.play();
+          },
+          onLongPressStart: (details) {
+            if (videoPlayerController != null && videoPlayerController!.value.isInitialized) {
+              videoPlayerController!.setPlaybackSpeed(2.0);
+              setState(() {
+                isFastForwarding = true;
+                isShowControls = false;
+              });
+            }
+          },
+          onLongPressEnd: (details) {
+            if (videoPlayerController != null && videoPlayerController!.value.isInitialized) {
+              videoPlayerController!.setPlaybackSpeed(1.0);
+              setState(() {
+                isFastForwarding = false;
+                isShowControls = true;
+                resetControlsTimer();
+              });
+            }
+          },
           child: Container(
             color: Colors.black,
             child: Stack(
@@ -369,6 +413,30 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
                   child: AspectRatio(
                     aspectRatio: videoPlayerController!.value.aspectRatio,
                     child: VideoPlayer(videoPlayerController!),
+                  ),
+                ),
+                if (isFastForwarding) Positioned(
+                  top: 40,
+                  child: Container(
+                    padding: const .symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: .circular(20),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.fast_forward, color: Colors.amber, size: 20),
+                        SizedBox(width: 6),
+                        Text(
+                          "2x Kecepatan",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: .bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 if (selectedLang != "Off" && currentSubtitleText.isNotEmpty) Positioned(
@@ -390,20 +458,45 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
                 Positioned(
                   right: 16,
                   bottom: 16,
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.black26,
-                        //radius: 22,
-                        child: IconButton(
-                          onPressed: () => showSubtitleSelection(),
-                          icon: Icon(
-                            selectedLang == "Off" ? Icons.closed_caption_disabled : Icons.closed_caption,
-                            color: selectedLang == "Off" ? Colors.white54 : Colors.yellowAccent,
+                  child: IgnorePointer(
+                    ignoring: !isShowControls,
+                    child: AnimatedOpacity(
+                      opacity: isShowControls ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 250),
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Colors.black45,
+                            child: IconButton(
+                              onPressed: () {
+                                showSubtitleSelection();
+                                controlTimer?.cancel();
+                              },
+                              icon: Icon(
+                                selectedLang == "Off" ? Icons.closed_caption_disabled : Icons.closed_caption,
+                                color: selectedLang == "Off" ? Colors.white54 : Colors.yellowAccent,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
+                  ),
+                ),
+                IgnorePointer(
+                  ignoring: !isShowControls,
+                  child: AnimatedOpacity(
+                    opacity: isShowControls ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 250),
+                    child: CircleAvatar(
+                      backgroundColor: Colors.black45,
+                      radius: 35,
+                      child: Icon(
+                        videoPlayerController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -416,6 +509,7 @@ class MayVideoPlayerState extends State<MayVideoPlayer> {
 
   @override
   void dispose() {
+    controlTimer?.cancel();
     videoPlayerController?.dispose();
     super.dispose();
   }
