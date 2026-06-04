@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:maydrama/ui/core.dart';
-import 'package:maydrama/utils/server.dart';
+import 'package:maydrama/app/core.dart';
+import 'package:maydrama/utils/apis.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -76,6 +76,7 @@ class GridListDrama extends StatefulWidget {
 
 class GridListDramaState extends State<GridListDrama> {
   String accessKey = "";
+  final ApiService apis = ApiService();
   final TextEditingController accessKeyController = TextEditingController();
 
   @override
@@ -163,20 +164,20 @@ class GridListDramaState extends State<GridListDrama> {
           childAspectRatio: 0.9
         ),
         padding: const EdgeInsets.all(15),
-        itemCount: ServerManager().appList.length,
+        itemCount: apis.appList.length,
         itemBuilder: (context, index) {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             child: GestureDetector(
-              onTap: () => ServerManager().appList[index].isActive ? Navigator.push(context, MaterialPageRoute(builder: (ctx) => MayDrama(index: index)))
+              onTap: () => apis.appList[index].isActive ? Navigator.push(context, MaterialPageRoute(builder: (ctx) => MayDrama(appIndex: index)))
               : showModalBottomSheet(
                   context: context,
                   builder: (context) => Container(
                     height: 200,
                     padding: const EdgeInsets.all(20),
                     child: Center(
-                      child: Text("${ServerManager().appList[index].name} Comming Soon"),
+                      child: Text("${apis.appList[index].name} Comming Soon"),
                     ),
                   ),
                 ),
@@ -198,11 +199,11 @@ class GridListDramaState extends State<GridListDrama> {
                     Icon(
                       Icons.star,
                       size: 40,
-                      color: ServerManager().appList[index].isActive ? Colors.cyanAccent : Colors.white.withValues(alpha: 0.8),
+                      color: apis.appList[index].isActive ? Colors.cyanAccent : Colors.white.withValues(alpha: 0.8),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      ServerManager().appList[index].name,
+                      apis.appList[index].name,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,

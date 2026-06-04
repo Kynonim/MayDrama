@@ -2,23 +2,23 @@ import 'dart:convert';
 import "package:http/http.dart" as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-const apiNetshort = "https://netshort.dramabos.online";
+const String apiNetshort = "https://netshort.dramabos.online";
 
-class ServerConfig {
+class ApisConfig {
   final int id;
   final String baseUrl;
   final bool isActive;
-  final String Function({String lang}) getRecomendation;
+  final String Function({String lang}) getNew;
   final String Function({required String query, String lang, int page}) getSearch;
   final String Function({String lang})? getCategories;
   final String Function({required String id, String lang}) getDescription;
   final String Function({required String id, required int eps, String lang, required String token}) getVideo;
   final String Function({int page, String lang}) getPopular;
 
-  ServerConfig({
+  ApisConfig({
     required this.id,
     required this.baseUrl,
-    required this.getRecomendation,
+    required this.getNew,
     required this.getSearch,
     required this.getDescription,
     required this.getVideo,
@@ -28,18 +28,18 @@ class ServerConfig {
   });
 }
 
-class ServerManager {
+class ApiService {
 
   Future<String> getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString("access_key") ?? "null";
   }
 
-  List<ServerConfig> servers = [
-    ServerConfig(
+  List<ApisConfig> servers = [
+    ApisConfig(
       id: 0,
       baseUrl: apiNetshort,
-      getRecomendation: ({lang = "in"}) => "$apiNetshort/api/home/1?lang=$lang",
+      getNew: ({lang = "in"}) => "$apiNetshort/api/home/1?lang=$lang",
       getSearch: ({lang = "in", page = 1, required query}) => "$apiNetshort/api/search?lang=$lang&q=$query&page=$page",
       getCategories: ({lang = "in"}) => "$apiNetshort/api/categories?lang=$lang",
       getDescription: ({required id, lang = "in"}) => "$apiNetshort/api/drama/$id?lang=$lang",
@@ -54,15 +54,7 @@ class ServerManager {
     AppList(name: "FreeReels", isActive: false),
     AppList(name: "DramaWave", isActive: false)
   ];
-}
 
-class AppList {
-  final String name;
-  final bool isActive;
-  AppList({required this.name, this.isActive = true});
-}
-
-class ApiService {
   Future<Map<String, dynamic>> fetchData(String endpoint) async {
     final url = Uri.parse(endpoint);
     try {
@@ -90,4 +82,10 @@ class ApiService {
       throw Exception(e);
     }
   }
+}
+
+class AppList {
+  final String name;
+  final bool isActive;
+  AppList({required this.name, this.isActive = true});
 }
