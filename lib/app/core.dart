@@ -97,11 +97,15 @@ class MayDramaDescriptionState extends State<MayDramaDescription> {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Desc"),
+      body: FutureBuilder(
+        future: futureDescriptionData,
+        builder: (context, snapshot) {
+          return snapshot.connectionState == ConnectionState.waiting
+            ? const Center(child: CircularProgressIndicator()) : snapshot.hasError
+            ? Center(child: Text(snapshot.error.toString())) : snapshot.hasData
+            ? MayCoreWidget.viewDramaDescription(context, widget.appIndex, snapshot.data!) : const Center(child: Text("Tidak ada data"));
+        },
       ),
     );
   }

@@ -20,6 +20,13 @@ class MayNetshort {
     }
   }
 
+  void setDataDesc({String name = "data"}) {
+    if (data is Map && data.containsKey("shortPlayId")) {
+      currentMap = data;
+    }
+    currentMap = data[name];
+  }
+
   dynamic getValue(String key) {
     if (currentMap.containsKey(key)) {
       return currentMap[key];
