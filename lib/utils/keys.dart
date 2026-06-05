@@ -63,4 +63,13 @@ class MayNetshort {
     }
     return getValue("shortPlayCover") ?? "null";
   }
+
+  static String getVideo({String name = "data", required Map<String, dynamic> video}) {
+    if (video is List) {
+      return video["videoUrl"];
+    }
+    return video[name]["videoUrl"];
+  }
+
+  static dynamic getSubtitlesList({String name = "data", required Map<String, dynamic> video}) => video["subtitles"] ?? video[name]["subtitles"];
 }
