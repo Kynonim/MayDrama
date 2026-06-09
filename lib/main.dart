@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:maydrama/app/settings.dart';
+import 'package:maydrama/ui/list.dart';
+import 'package:maydrama/utils/platform.dart';
 import 'package:maydrama/utils/service.dart';
 
 void main() {
@@ -51,24 +54,43 @@ class App extends StatelessWidget {
       ),
       themeMode: .system,
       debugShowCheckedModeBanner: false,
-      home: const GridListDrama(),
+      home: const MayDrama(),
     );
   }
 }
 
-class GridListDrama extends StatefulWidget {
-  const GridListDrama({super.key});
+class MayDrama extends StatefulWidget {
+  const MayDrama({super.key});
 
   @override
-  State<GridListDrama> createState() => GridListDramaState();
+  State<MayDrama> createState() => MayDramaState();
 }
 
-class GridListDramaState extends State<GridListDrama> {
+class MayDramaState extends State<MayDrama> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("MayDrama"),
+        actions: [
+          IconButton(
+            onPressed: () => UI.go(context, MaySettings()),
+            icon: Icon(Icons.settings_outlined),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const .all(16),
+        child: Column(
+          crossAxisAlignment: .start,
+          children: [
+            Text("App Platforms", style: TextStyle(fontSize: 24, fontWeight: .bold)),
+            const SizedBox(height: 10),
+            Expanded(
+              child: buildAppPlatformsList(context, AppPlatforms.supportPlatformDefault()),
+            ),
+          ],
+        ),
       ),
     );
   }

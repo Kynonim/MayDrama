@@ -4,11 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 const accessKey = "kynonim_maydrama_access_token";
-const appPlatforms = "https://api.dramabuzz.sbs/api/status?key=";
 
 class ApiService {
-  String appPlatformUrl(String token) => "$appPlatforms$token";
-
   Future<String> loadAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(accessKey) ?? "null";

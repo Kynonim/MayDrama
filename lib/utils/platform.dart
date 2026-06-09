@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'package:maydrama/utils/service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const supportPlatform = "kynonim_maydrama_support_platform";
+const appPlatforms = "https://api.dramabuzz.sbs/api/status?key=";
 
 class AppPlatforms {
   static List<AppPlatformModels> supportPlatformDefault() {
@@ -76,6 +78,32 @@ class AppPlatforms {
 
     final uri = Uri.parse(url);
     return uri.origin;
+  }
+
+  static Future<bool> updateAppPlatform(String token) async {
+    try {
+      final apiService = ApiService();
+      final data = await apiService.fetchData<Map<String, dynamic>>("$appPlatforms$token");
+      if (data.isEmpty || !data.containsKey("platforms")) {
+        return false;
+      }
+      final platformData = data["platforms"];
+      if (platformData is List) {
+        final platforms = platformData.map((item) => AppPlatformModels.fromJson(item as Map<String, dynamic>)).toList();
+        return await AppPlatforms.saveSupportPlatform(platforms);
+      } else if (platformData is Map) {
+        final platforms = [AppPlatformModels.fromJson(platformData as Map<String, dynamic>)];
+        return AppPlatforms.saveSupportPlatform(platforms);
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static bool checkIsSVG(String url) {
+    if (url.endsWith(".svg")) return true;
+    return false;
   }
 }
 
